@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Muhammad Ammar Shahid — Offensive Security</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0c10; --bg2:#070809; --panel:#0f1218; --line:#1d232e; --line2:#2a3340;
+  --ink:#e7e9ee; --muted:#838d9c; --dim:#5a6473;
+  --amber:#f5a623; --amber-soft:#ffcd6b; --green:#5ad19a;
+  --mono:'JetBrains Mono',monospace; --sans:'Hanken Grotesk',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden}
+body.js{cursor:none}
+@media(pointer:coarse){body.js{cursor:auto}}
+::selection{background:var(--amber);color:#0a0c10}
+
+/* backdrop */
+.bg-layer{position:fixed;inset:0;z-index:0;pointer-events:none}
+.grid-bg{background-image:linear-gradient(var(--line) 1px,transparent 1px),
+  linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:48px 48px;opacity:.4;
+  -webkit-mask-image:radial-gradient(ellipse 95% 75% at 50% 0%,#000,transparent 80%);
+          mask-image:radial-gradient(ellipse 95% 75% at 50% 0%,#000,transparent 80%)}
+.scan{background:repeating-linear-gradient(0deg,rgba(255,255,255,.012) 0 1px,transparent 1px 3px);mix-blend-mode:overlay}
+.mouse-glow{position:fixed;width:540px;height:540px;border-radius:50%;z-index:0;pointer-events:none;
+  background:radial-gradient(circle,rgba(245,166,35,.10),transparent 62%);transform:translate(-50%,-50%);
+  left:50%;top:-10%;filter:blur(8px)}
+.orb{position:fixed;border-radius:50%;filter:blur(70px);opacity:.4;z-index:0;pointer-events:none}
+.orb.a{width:400px;height:400px;background:rgba(245,166,35,.16);top:-120px;right:-80px}
+.orb.b{width:320px;height:320px;background:rgba(90,209,154,.10);top:60%;left:-110px}
+
+/* cursor (only when body.js) */
+.cur-dot,.cur-ring{display:none;position:fixed;top:0;left:0;z-index:9999;pointer-events:none;border-radius:50%;
+  transform:translate(-50%,-50%);mix-blend-mode:difference}
+body.js .cur-dot,body.js .cur-ring{display:block}
+.cur-dot{width:7px;height:7px;background:var(--amber)}
+.cur-ring{width:34px;height:34px;border:1.5px solid var(--amber);
+  transition:width .22s,height .22s,background .22s,border-color .22s}
+.cur-ring.hov{width:56px;height:56px;background:rgba(245,166,35,.12);border-color:var(--amber-soft)}
+@media(pointer:coarse){.cur-dot,.cur-ring{display:none!important}}
+
+.progress{position:fixed;top:0;left:0;height:2px;width:0;z-index:200;
+  background:linear-gradient(90deg,var(--amber),var(--green));box-shadow:0 0 12px var(--amber)}
+
+/* ===== loader — 100% CSS, cannot get stuck ===== */
+#loader{position:fixed;inset:0;z-index:1000;background:var(--bg2);display:flex;align-items:center;
+  justify-content:center;flex-direction:column;font-family:var(--mono);
+  animation:loaderHide .55s ease 2.5s forwards}
+.boot{width:min(440px,82vw);font-size:.82rem}
+.boot .ln{color:var(--green);margin:4px 0;white-space:pre;opacity:0;animation:lnshow .34s ease forwards}
+.boot .ok{color:var(--amber)}
+.boot .bar{height:3px;background:var(--line);border-radius:3px;margin-top:18px;overflow:hidden}
+.boot .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--amber),var(--green));
+  animation:barfill 2.35s cubic-bezier(.3,.7,.3,1) forwards}
+.bk::after{content:"▋";animation:blink 1s steps(1) infinite;color:var(--amber)}
+@keyframes blink{50%{opacity:0}}
+@keyframes lnshow{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@keyframes barfill{to{width:100%}}
+@keyframes loaderHide{to{opacity:0;visibility:hidden;pointer-events:none}}
+
+.wrap{position:relative;z-index:2;max-width:1120px;margin:0 auto;padding:0 30px}
+
+/* nav */
+nav{position:sticky;top:0;z-index:150;backdrop-filter:blur(12px);
+  background:rgba(10,12,16,.7);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;justify-content:space-between;align-items:center;height:64px}
+.brand{font-family:var(--mono);font-weight:800;font-size:.98rem}
+.brand .dot{color:var(--amber);animation:blink 1.4s steps(1) infinite}
+.navlinks{display:flex;gap:30px}
+.navlinks a{font-family:var(--mono);font-size:.76rem;color:var(--muted);text-decoration:none;
+  text-transform:uppercase;letter-spacing:1.5px;transition:color .2s;position:relative}
+.navlinks a::after{content:"";position:absolute;left:0;bottom:-6px;width:0;height:1.5px;background:var(--amber);transition:width .25s}
+.navlinks a:hover,.navlinks a.active{color:var(--amber)}
+.navlinks a.active::after{width:100%}
+@media(max-width:680px){.navlinks{display:none}}
+
+/* hero */
+header{padding:104px 0 70px;border-bottom:1px solid var(--line);position:relative;overflow:hidden}
+.term{font-family:var(--mono);font-size:.86rem;color:var(--green);margin-bottom:26px;min-height:2.6em}
+.term .p{color:var(--dim)}.term .res{color:var(--ink)}.term .cc{color:var(--amber)}
+h1{font-size:clamp(2.7rem,7.6vw,5.2rem);font-weight:800;line-height:1.0;letter-spacing:-2px;margin-bottom:20px}
+h1 .hl{color:var(--amber);text-shadow:0 0 40px rgba(245,166,35,.35)}
+.tag{font-family:var(--mono);font-size:.92rem;color:var(--muted);margin-bottom:38px}
+.tag b{color:var(--ink);font-weight:500}
+.cta{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.btn{font-family:var(--mono);font-size:.8rem;letter-spacing:.5px;text-decoration:none;padding:12px 20px;
+  border:1px solid var(--line);border-radius:8px;color:var(--ink);background:var(--panel);
+  position:relative;overflow:hidden;transition:transform .2s,border-color .22s,color .22s;display:inline-block}
+.btn span{position:relative;z-index:1}
+.btn::before{content:"";position:absolute;inset:0;background:var(--amber);transform:translateY(101%);transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+.btn:hover{color:#0a0c10;border-color:var(--amber)}
+.btn:hover::before{transform:translateY(0)}
+.btn.primary{background:var(--amber);color:#0a0c10;border-color:var(--amber);font-weight:700}
+.btn.primary::before{background:var(--amber-soft)}
+
+/* hero reveal — CSS only, guaranteed */
+.hreveal{opacity:0;animation:rise .85s cubic-bezier(.2,.8,.2,1) both}
+@keyframes rise{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:none}}
+
+/* metrics */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:56px}
+@media(max-width:680px){.metrics{grid-template-columns:repeat(2,1fr)}}
+.metric{background:var(--panel);padding:26px 20px;text-align:center;transition:background .3s}
+.metric:hover{background:#12161d}
+.metric .n{font-family:var(--mono);font-size:2.1rem;font-weight:800;color:var(--amber);line-height:1}
+.metric .l{font-size:.78rem;color:var(--muted);margin-top:8px}
+
+/* marquee */
+.marquee{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--bg2);
+  overflow:hidden;padding:16px 0;position:relative;z-index:2}
+.mtrack{display:flex;gap:40px;white-space:nowrap;width:max-content;animation:mq 26s linear infinite}
+.marquee.rev .mtrack{animation-direction:reverse;animation-duration:32s}
+.mtrack span{font-family:var(--mono);font-size:1.05rem;font-weight:700;color:var(--dim);letter-spacing:1px}
+.mtrack span b{color:var(--amber)}
+@keyframes mq{to{transform:translateX(-50%)}}
+
+/* sections + watermark */
+section{padding:92px 0;border-bottom:1px solid var(--line);position:relative;overflow:hidden}
+.wm{position:absolute;z-index:0;font-family:var(--mono);font-weight:800;white-space:nowrap;
+  color:rgba(231,233,238,.022);font-size:clamp(7rem,20vw,18rem);letter-spacing:-4px;
+  top:50%;left:0;transform:translateY(-50%);pointer-events:none;will-change:transform}
+.shead{display:flex;align-items:baseline;gap:16px;margin-bottom:46px}
+.shead .num{font-family:var(--mono);font-size:.82rem;color:var(--amber)}
+.shead h2{font-size:1.9rem;font-weight:800;letter-spacing:-.6px}
+.lead{font-size:1.18rem;color:#c4cad4;max-width:790px}.lead b{color:var(--ink)}
+
+/* skills */
+.skillgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.skillcell{background:var(--panel);padding:24px 26px;transition:background .3s}
+.skillcell:hover{background:#12161d}
+.skillcell h3{font-family:var(--mono);font-size:.76rem;text-transform:uppercase;letter-spacing:1.5px;
+  color:var(--amber);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.skillcell h3::before{content:"";width:6px;height:6px;background:var(--amber);border-radius:50%;box-shadow:0 0 8px var(--amber)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-family:var(--mono);font-size:.74rem;color:var(--muted);border:1px solid var(--line);
+  background:var(--bg);padding:6px 11px;border-radius:6px;
+  transition:transform .18s,color .18s,border-color .18s,background .18s}
+.chip:hover{color:#0a0c10;background:var(--amber);border-color:var(--amber);transform:translateY(-3px) scale(1.06)}
+
+/* projects */
+.projects{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:28px;
+  position:relative;overflow:hidden;transform-style:preserve-3d;will-change:transform;
+  transition:transform .16s ease-out,border-color .3s}
+.card .spot{position:absolute;inset:0;opacity:0;transition:opacity .3s;pointer-events:none;
+  background:radial-gradient(380px circle at var(--mx,50%) var(--my,50%),rgba(245,166,35,.10),transparent 45%)}
+.card:hover .spot{opacity:1}
+.card::after{content:"";position:absolute;left:0;top:0;height:100%;width:3px;background:var(--amber);
+  transform:scaleY(0);transform-origin:top;transition:transform .3s}
+.card:hover{border-color:var(--line2)}
+.card:hover::after{transform:scaleY(1)}
+.card.feature{grid-column:1/-1;border-color:#3a2d12;background:linear-gradient(135deg,rgba(245,166,35,.06),var(--panel) 55%)}
+.card>*{transform:translateZ(26px)}
+.card .spot{transform:translateZ(0)}
+.ck{font-family:var(--mono);font-size:.72rem;color:var(--amber);letter-spacing:1px;text-transform:uppercase;
+  margin-bottom:14px;display:flex;justify-content:space-between}
+.card h3{font-size:1.28rem;font-weight:700;margin-bottom:10px;letter-spacing:-.3px}
+.card p{font-size:.97rem;color:#aeb6c2;margin-bottom:16px}
+.vec{color:var(--green);font-family:var(--mono);font-size:.84rem}
+code{font-family:var(--mono);color:var(--amber-soft);font-size:.9em}
+.stack{display:flex;flex-wrap:wrap;gap:7px}
+.stack span{font-family:var(--mono);font-size:.7rem;color:var(--dim);border:1px solid var(--line);padding:4px 9px;border-radius:5px}
+a.repo{font-family:var(--mono);font-size:.74rem;color:var(--muted);text-decoration:none;border-bottom:1px solid var(--line);transition:.2s}
+a.repo:hover{color:var(--amber);border-color:var(--amber)}
+.chainlist{list-style:none;margin:8px 0 18px}
+.chainlist li{font-size:.93rem;color:#aeb6c2;padding:9px 0;border-top:1px solid var(--line);
+  display:flex;gap:12px;align-items:baseline;transition:padding-left .25s}
+.chainlist li:hover{padding-left:8px}
+.chainlist li:first-child{border-top:none}
+.chainlist b{color:var(--ink);font-weight:600;font-family:var(--mono);font-size:.84rem;min-width:120px}
+.chainlist .v{color:var(--green);font-family:var(--mono);font-size:.82rem}
+
+/* timeline */
+.tl{position:relative;padding-left:28px}
+.tl::before{content:"";position:absolute;left:4px;top:6px;bottom:6px;width:1px;background:linear-gradient(var(--amber),var(--line) 32%)}
+.titem{position:relative;padding:0 0 32px}.titem:last-child{padding-bottom:0}
+.titem::before{content:"";position:absolute;left:-28px;top:7px;width:9px;height:9px;border-radius:50%;
+  background:var(--bg);border:2px solid var(--dim);transition:.3s}
+.titem:hover::before{border-color:var(--amber);transform:scale(1.3)}
+.titem.live::before{border-color:var(--amber);box-shadow:0 0 0 4px rgba(245,166,35,.14);animation:pulse 2.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 4px rgba(245,166,35,.14)}50%{box-shadow:0 0 0 7px rgba(245,166,35,.05)}}
+.tdate{font-family:var(--mono);font-size:.74rem;color:var(--amber)}
+.trole{font-size:1.1rem;font-weight:700;margin:3px 0}
+.torg{color:var(--muted);font-size:.92rem}
+.tdesc{color:#9aa3b1;font-size:.92rem;margin-top:7px}
+
+/* education */
+.edrow{display:flex;justify-content:space-between;gap:20px;padding:20px 0;border-top:1px solid var(--line);flex-wrap:wrap;transition:padding-left .25s}
+.edrow:hover{padding-left:8px}.edrow:first-child{border-top:none}
+.edrow .l b{font-weight:700}.edrow .l span{color:var(--muted);font-size:.9rem}
+.edrow .meta{font-family:var(--mono);font-size:.78rem;color:var(--dim);text-align:right}
+.honors{display:flex;flex-direction:column;gap:13px;margin-top:32px}
+.honor{display:flex;gap:12px;align-items:baseline;font-size:.96rem;color:#aeb6c2}
+.honor .star{color:var(--amber);font-family:var(--mono)}.honor b{color:var(--ink)}
+
+/* footer */
+footer{padding:90px 0 60px;text-align:center;position:relative;overflow:hidden}
+footer h2{font-size:2.4rem;font-weight:800;letter-spacing:-.7px;margin-bottom:12px}
+footer p{color:var(--muted);margin-bottom:30px}
+.fcontact{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin-bottom:36px}
+.fmeta{font-family:var(--mono);font-size:.74rem;color:var(--dim)}
+
+/* reveal: hidden ONLY when JS is active (body.js). No JS => fully visible. */
+.rv,.rv-l,.rv-r,.rv-s{transition:opacity .8s cubic-bezier(.2,.8,.2,1),transform .8s cubic-bezier(.2,.8,.2,1)}
+body.js .rv{opacity:0;transform:translateY(34px)}
+body.js .rv-l{opacity:0;transform:translateX(-60px)}
+body.js .rv-r{opacity:0;transform:translateX(60px)}
+body.js .rv-s{opacity:0;transform:scale(.92)}
+body.js .rv.in,body.js .rv-l.in,body.js .rv-r.in,body.js .rv-s.in{opacity:1;transform:none}
+
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+  #loader{display:none!important}
+  .hreveal{opacity:1!important;transform:none!important}
+  .rv,.rv-l,.rv-r,.rv-s{opacity:1!important;transform:none!important}
+}
+</style>
+</head>
+<body>
+
+<div id="loader"><div class="boot">
+  <div class="ln" style="animation-delay:.15s">[ initializing ammar.sh ]</div>
+  <div class="ln" style="animation-delay:.5s">&gt; mounting /skills .............. <span class="ok">ok</span></div>
+  <div class="ln" style="animation-delay:.85s">&gt; loading exploit modules ...... <span class="ok">ok</span></div>
+  <div class="ln" style="animation-delay:1.2s">&gt; arming payload framework ..... <span class="ok">ok</span></div>
+  <div class="ln" style="animation-delay:1.55s">&gt; establishing session ........ <span class="ok">ok</span></div>
+  <div class="ln bk" style="animation-delay:1.95s">&gt; access granted_</div>
+  <div class="bar"><i></i></div>
+</div></div>
+
+<div class="progress"></div>
+<div class="cur-dot"></div><div class="cur-ring"></div>
+<div class="bg-layer grid-bg" id="grid"></div>
+<div class="bg-layer scan"></div>
+<div class="orb a" data-orb="0.06"></div><div class="orb b" data-orb="-0.05"></div>
+<div class="mouse-glow"></div>
+
+<nav><div class="wrap">
+  <div class="brand">ammar<span class="dot">.</span>sh</div>
+  <div class="navlinks">
+    <a href="#about">About</a><a href="#skills">Skills</a><a href="#work">Projects</a>
+    <a href="#path">Experience</a><a href="#contact">Contact</a>
+  </div>
+</div></nav>
+
+<header><div class="wrap skew">
+  <div class="term hreveal" id="termline" style="animation-delay:2.55s">root@kali:~$ whoami<br><span class="res">muhammad_ammar_shahid · offensive security</span></div>
+  <h1 class="hreveal" style="animation-delay:2.68s">Offensive security,<br><span class="hl">built to break &amp; defend.</span></h1>
+  <p class="tag hreveal" style="animation-delay:2.8s"><b>Cybersecurity undergraduate</b> @ FAST-NUCES &nbsp;·&nbsp; CTF challenge developer &nbsp;·&nbsp; Cyber + AI</p>
+  <div class="cta hreveal" style="animation-delay:2.92s">
+    <a class="btn primary mag" href="#work"><span>View Work</span></a>
+    <a class="btn mag" href="https://github.com/Roy-Malik" target="_blank" rel="noopener"><span>GitHub ↗</span></a>
+    <a class="btn mag" href="https://www.linkedin.com/in/muhammad-ammar-shahid-7930b8294/" target="_blank" rel="noopener"><span>LinkedIn ↗</span></a>
+    <a class="btn mag" href="mailto:ammarmalik200515@icloud.com"><span>Email</span></a>
+  </div>
+  <div class="metrics hreveal" style="animation-delay:3.04s">
+    <div class="metric"><div class="n" data-count="3">3</div><div class="l">CTF challenges built</div></div>
+    <div class="metric"><div class="n" data-count="10" data-suffix="+">10+</div><div class="l">Projects shipped</div></div>
+    <div class="metric"><div class="n" data-count="0.914" data-dec="3">0.914</div><div class="l">R² · ML query model</div></div>
+    <div class="metric"><div class="n" data-count="5">5</div><div class="l">Languages in rotation</div></div>
+  </div>
+</div></header>
+
+<div class="marquee"><div class="mtrack" id="mq1"></div></div>
+
+<section id="about"><div class="wm" data-wm="0.25">RECON</div><div class="wrap skew">
+  <div class="shead rv"><span class="num">01</span><h2>Profile</h2></div>
+  <p class="lead rv">I specialize in <b>offensive security</b> with an applied machine-learning focus. I design and exploit realistic web-application attack chains, develop fully containerized CTF challenges, and work hands-on across reconnaissance, OSINT, privilege escalation, and low-level systems &mdash; down to Linux kernel internals and x86 assembly. My through-line is <b>detection and deception</b>: systems that pair red-team technique with ML-driven anomaly analysis. Currently seeking offensive security / red-team roles.</p>
+</div></section>
+
+<section id="skills"><div class="wm" data-wm="-0.22">ARSENAL</div><div class="wrap skew">
+  <div class="shead rv"><span class="num">02</span><h2>Capabilities</h2></div>
+  <div class="skillgrid">
+    <div class="skillcell rv-l"><h3>Offensive Security</h3><div class="chips">
+      <span class="chip">Web exploitation</span><span class="chip">XXE</span><span class="chip">SSRF</span><span class="chip">SQLi</span>
+      <span class="chip">JWT attacks</span><span class="chip">Mass assignment</span><span class="chip">CTF design</span>
+      <span class="chip">Payload scripting</span><span class="chip">OSINT</span><span class="chip">Privilege escalation</span><span class="chip">Adversarial sim</span></div></div>
+    <div class="skillcell rv-r"><h3>Systems &amp; Low-Level</h3><div class="chips">
+      <span class="chip">Linux kernel internals</span><span class="chip">Syscall interception</span><span class="chip">Kernel compilation</span>
+      <span class="chip">x86 / MASM</span><span class="chip">OS internals</span><span class="chip">User–kernel debugging</span></div></div>
+    <div class="skillcell rv-l"><h3>Networking</h3><div class="chips">
+      <span class="chip">VLAN segmentation</span><span class="chip">Inter-VLAN routing</span><span class="chip">DHCP / DNS / NAT</span>
+      <span class="chip">Static &amp; dynamic routing</span><span class="chip">Packet Tracer</span></div></div>
+    <div class="skillcell rv-r"><h3>Programming</h3><div class="chips">
+      <span class="chip">Python</span><span class="chip">C++</span><span class="chip">C</span><span class="chip">SQL</span><span class="chip">R</span>
+      <span class="chip">TypeScript</span><span class="chip">JavaScript</span><span class="chip">x86 Asm</span></div></div>
+    <div class="skillcell rv-l"><h3>Tooling &amp; Infra</h3><div class="chips">
+      <span class="chip">Flask</span><span class="chip">Docker / Compose</span><span class="chip">scikit-learn</span><span class="chip">React.js</span></div></div>
+    <div class="skillcell rv-r"><h3>AI / ML</h3><div class="chips">
+      <span class="chip">Supervised learning</span><span class="chip">Random Forest</span><span class="chip">Feature engineering</span>
+      <span class="chip">Anomaly detection</span><span class="chip">NLP classification</span><span class="chip">Model benchmarking</span></div></div>
+  </div>
+</div></section>
+
+<section id="work"><div class="wm" data-wm="0.3">EXPLOIT</div><div class="wrap skew">
+  <div class="shead rv"><span class="num">03</span><h2>Selected Projects</h2></div>
+  <div class="projects">
+    <div class="card feature rv-s tilt"><div class="spot"></div>
+      <div class="ck"><span>★ Offensive Security</span><span>2025</span></div>
+      <h3>Advanced Web CTF Challenge Suite</h3>
+      <p>Three fully Dockerized web-exploitation challenges, each shipping a complete Flask backend and a player writeup. Built to teach realistic, chained attack paths.</p>
+      <ul class="chainlist">
+        <li><b>InvoiceFlow</b><span class="v">XXE → SSRF</span><span>chained external-entity injection pivoting to internal request forgery.</span></li>
+        <li><b>NexusPanel</b><span class="v">SQLi · GraphQL · JWT</span><span>injection with GraphQL introspection and JWT algorithm-confusion bypass.</span></li>
+        <li><b>CipherVault</b><span class="v">Mass-assign · SSRF · Crypto</span><span>mass assignment, SSRF, and a two-time-pad cryptographic break.</span></li>
+      </ul>
+      <div class="stack"><span>Python</span><span>Flask</span><span>Docker Compose</span></div>
+    </div>
+    <div class="card rv-l tilt"><div class="spot"></div>
+      <div class="ck"><span>Systems</span><span>Dec 2025</span></div>
+      <h3>Open System Call Wrapper</h3>
+      <p>Modified the <code>open()</code> syscall in the Linux 4.4 kernel to intercept file access, log metadata, and enforce access control — coordinated changes across syscall registration, kernel headers, and filesystem source, compiled from source and validated in a VM.</p>
+      <div class="stack"><span>C</span><span>Linux Kernel</span></div>
+    </div>
+    <div class="card rv-r tilt"><div class="spot"></div>
+      <div class="ck"><span>AI / ML</span><span>Nov–Dec 2025</span></div>
+      <h3>ML Query Cost Estimation</h3>
+      <p>Random Forest regressor predicting SQL execution cost across a full pipeline. Benchmarked against Bao; achieved <span class="vec">R² = 0.914</span> with robustness and tail-latency analysis.</p>
+      <div class="stack"><span>Python</span><span>Random Forest</span><span>scikit-learn</span></div>
+      <p style="margin:14px 0 0"><a class="repo" href="https://github.com/Roy-Malik/Database_Systems-_Query_Optimization" target="_blank" rel="noopener">→ repo</a></p>
+    </div>
+    <div class="card rv-l tilt"><div class="spot"></div>
+      <div class="ck"><span>Networking</span><span>Apr–May 2025</span></div>
+      <h3>Enterprise Network Simulation</h3>
+      <p>Enterprise network with VLAN segmentation, inter-VLAN routing, DHCP, DNS, NAT, wireless access, and both static and dynamic routing protocols.</p>
+      <div class="stack"><span>Cisco Packet Tracer</span></div>
+      <p style="margin:14px 0 0"><a class="repo" href="https://github.com/Roy-Malik/CNET_Project" target="_blank" rel="noopener">→ repo</a></p>
+    </div>
+    <div class="card rv-r tilt"><div class="spot"></div>
+      <div class="ck"><span>Algorithms</span><span>Dec 2025</span></div>
+      <h3>Social Network Analysis Engine</h3>
+      <p>Graph engine with Dijkstra and heuristic A* shortest-path (full reconstruction + worst-case complexity analysis) plus a DP solver (DFS + memoization) for longest influence chains.</p>
+      <div class="stack"><span>C++</span><span>Graph algorithms</span></div>
+    </div>
+    <div class="card rv-l tilt"><div class="spot"></div>
+      <div class="ck"><span>Low-Level</span><span>Dec 2024</span></div>
+      <h3>PACMAN — MASM x86</h3>
+      <p>Console score-tracking system using low-level register/memory manipulation and system-level file I/O via Irvine32; demonstrates x86 architecture and control flow.</p>
+      <div class="stack"><span>MASM</span><span>x86 Assembly</span></div>
+      <p style="margin:14px 0 0"><a class="repo" href="https://github.com/Roy-Malik/COAL_PACMAN" target="_blank" rel="noopener">→ repo</a></p>
+    </div>
+  </div>
+</div></section>
+
+<div class="marquee rev"><div class="mtrack" id="mq2"></div></div>
+
+<section id="path"><div class="wm" data-wm="-0.26">OPS LOG</div><div class="wrap skew">
+  <div class="shead rv"><span class="num">04</span><h2>Experience</h2></div>
+  <div class="tl">
+    <div class="titem live rv-l"><div class="tdate">Aug 2025 — Mar 2026 · 8 mos</div>
+      <div class="trole">Summer Internship</div><div class="torg">Confidential · Hybrid, Islamabad</div>
+      <div class="tdesc">Offensive-security workflows including ethical hacking and OSINT-based reconnaissance.</div></div>
+    <div class="titem rv-l"><div class="tdate">Mar 2025 — Aug 2025 · 6 mos</div>
+      <div class="trole">CTF Player</div><div class="torg">TryHackMe · Remote</div>
+      <div class="tdesc">Solved exploitation labs spanning Python pickle deserialization RCE, command injection for credential leakage, and privilege escalation via misconfigured sudo scripts; adapted exploits to NAT-blocked reverse shells and library incompatibilities.</div></div>
+    <div class="titem rv-l"><div class="tdate">Jun 2025 — Jul 2025 · 2 mos</div>
+      <div class="trole">Summer Internship</div><div class="torg">NUST · Hybrid, Islamabad</div>
+      <div class="tdesc">Built Python automation for structured data handling; modular, reusable code with error handling, logging, testing, and debugging.</div></div>
+    <div class="titem rv-l"><div class="tdate">Jan 2024 — Mar 2024 · 3 mos</div>
+      <div class="trole">Software Intern</div><div class="torg">Sysreforms International · Contract</div>
+      <div class="tdesc">C++ development and problem-solving tasks.</div></div>
+    <div class="titem rv-l"><div class="tdate">Jul 2021 · 1 mo</div>
+      <div class="trole">Software Intern</div><div class="torg">Siemens · On-site</div>
+      <div class="tdesc">Software development internship (C++, problem solving).</div></div>
+  </div>
+</div></section>
+
+<section id="edu"><div class="wm" data-wm="0.2">CRED</div><div class="wrap skew">
+  <div class="shead rv"><span class="num">05</span><h2>Education &amp; Honors</h2></div>
+  <div class="rv">
+    <div class="edrow"><div class="l"><b>BS Cyber Security</b> &nbsp; <span>FAST-NUCES, Islamabad</span></div><div class="meta">2023 – 2027</div></div>
+    <div class="edrow"><div class="l"><b>A Levels — Computer Science</b> &nbsp; <span>APSACS · 1 A, 2 B · Head Boy, Cambridge Wing</span></div><div class="meta">2021 – 2023</div></div>
+    <div class="edrow"><div class="l"><b>O Levels — Computer Science</b> &nbsp; <span>APSACS · 3 A*, 4 A, 1 C</span></div><div class="meta">2018 – 2021</div></div>
+  </div>
+  <div class="honors rv">
+    <div class="honor"><span class="star">▹</span><div><b>Head Boy</b> — APSACS Cambridge Wing, awarded by the Principal (Sep 2022).</div></div>
+    <div class="honor"><span class="star">▹</span><div><b>Chamber of Ciphers — 3rd Position</b> — NASCON, FAST-NUCES.</div></div>
+  </div>
+</div></section>
+
+<footer id="contact"><div class="wm" data-wm="0.18">CONNECT</div><div class="wrap rv skew">
+  <div class="term" style="text-align:center;color:var(--green)">root@kali:~$ <span class="p">./contact.sh</span></div>
+  <h2>Let&rsquo;s talk packets, payloads &amp; Python.</h2>
+  <p>Open to offensive security and red-team opportunities.</p>
+  <div class="fcontact">
+    <a class="btn primary mag" href="mailto:ammarmalik200515@icloud.com"><span>ammarmalik200515@icloud.com</span></a>
+    <a class="btn mag" href="https://github.com/Roy-Malik" target="_blank" rel="noopener"><span>GitHub ↗</span></a>
+    <a class="btn mag" href="https://www.linkedin.com/in/muhammad-ammar-shahid-7930b8294/" target="_blank" rel="noopener"><span>LinkedIn ↗</span></a>
+  </div>
+  <div class="fmeta">Islamabad, Pakistan · 0336 5022267</div>
+</div></footer>
+
+<script>
+/* ENHANCEMENT LAYER — page is fully functional without any of this. */
+(function(){
+  try{
+    var reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+    var touch=matchMedia('(pointer:coarse)').matches;
+    if(!reduce) document.body.classList.add('js');
+
+    /* marquee */
+    var vectors=['XXE','SSRF','SQLi','JWT confusion','RCE','Privilege escalation','OSINT','Deserialization','Mass assignment','Kernel syscalls','Two-time pad','GraphQL introspection'];
+    function fillMarquee(id){var t=document.getElementById(id);if(!t)return;var h='';
+      for(var k=0;k<2;k++)for(var i=0;i<vectors.length;i++)h+='<span><b>//</b> '+vectors[i]+'</span>';t.innerHTML=h;}
+    fillMarquee('mq1');fillMarquee('mq2');
+
+    /* typed terminal (replaces static line, then ends on it) */
+    if(!reduce){
+      var el=document.getElementById('termline');
+      if(el){
+        var cmd='whoami',out='muhammad_ammar_shahid · offensive security',i=0,j=0;
+        function tcmd(){if(i<=cmd.length){el.innerHTML='root@kali:~$ '+cmd.slice(0,i)+'<span class="cc">▋</span>';i++;setTimeout(tcmd,70);}else setTimeout(tout,300);}
+        function tout(){if(j<=out.length){el.innerHTML='root@kali:~$ '+cmd+'<br><span class="res">'+out.slice(0,j)+'</span><span class="cc">▋</span>';j++;setTimeout(tout,33);}else el.innerHTML='root@kali:~$ '+cmd+'<br><span class="res">'+out+'</span><span class="cc">▋</span>';}
+        el.innerHTML='root@kali:~$ <span class="cc">▋</span>';
+        setTimeout(tcmd,2900);
+      }
+    }
+
+    /* reveals — if this fails, catch() reveals everything */
+    var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.12});
+    document.querySelectorAll('.rv,.rv-l,.rv-r,.rv-s').forEach(function(el){io.observe(el);});
+
+    /* counters */
+    var cio=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){countUp(e.target);cio.unobserve(e.target);}});},{threshold:.6});
+    document.querySelectorAll('[data-count]').forEach(function(el){cio.observe(el);});
+    function countUp(el){var target=parseFloat(el.dataset.count),dec=parseInt(el.dataset.dec||0),suf=el.dataset.suffix||'',dur=1500,t0=performance.now();
+      (function step(now){var p=Math.min((now-t0)/dur,1);p=1-Math.pow(1-p,3);var v=target*p;
+        el.textContent=(dec?v.toFixed(dec):Math.round(v))+suf;
+        if(p<1)requestAnimationFrame(step);else el.textContent=(dec?target.toFixed(dec):target)+suf;})(t0);}
+
+    if(!touch){
+      var dot=document.querySelector('.cur-dot'),ring=document.querySelector('.cur-ring');
+      var mx=innerWidth/2,my=innerHeight/2,rx=mx,ry=my;
+      addEventListener('mousemove',function(e){mx=e.clientX;my=e.clientY;dot.style.left=mx+'px';dot.style.top=my+'px';});
+      (function loop(){rx+=(mx-rx)*.2;ry+=(my-ry)*.2;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(loop);})();
+      document.querySelectorAll('a,.chip,.btn,.card').forEach(function(x){x.addEventListener('mouseenter',function(){ring.classList.add('hov');});x.addEventListener('mouseleave',function(){ring.classList.remove('hov');});});
+      var glow=document.querySelector('.mouse-glow');
+      addEventListener('mousemove',function(e){glow.style.left=e.clientX+'px';glow.style.top=e.clientY+'px';});
+    }
+
+    if(!touch&&!reduce){
+      document.querySelectorAll('.tilt').forEach(function(card){var max=7;
+        card.addEventListener('mousemove',function(e){var r=card.getBoundingClientRect();var px=(e.clientX-r.left)/r.width,py=(e.clientY-r.top)/r.height;
+          card.style.transform='perspective(900px) rotateY('+((px-.5)*max*2)+'deg) rotateX('+((.5-py)*max*2)+'deg) translateY(-4px)';
+          card.style.setProperty('--mx',(px*100)+'%');card.style.setProperty('--my',(py*100)+'%');});
+        card.addEventListener('mouseleave',function(){card.style.transform='';});});
+      document.querySelectorAll('.mag').forEach(function(btn){
+        btn.addEventListener('mousemove',function(e){var r=btn.getBoundingClientRect();var x=e.clientX-r.left-r.width/2,y=e.clientY-r.top-r.height/2;btn.style.transform='translate('+x*.25+'px,'+y*.4+'px)';});
+        btn.addEventListener('mouseleave',function(){btn.style.transform='';});});
+    }
+
+    /* scroll-spy */
+    var navlinks=[].slice.call(document.querySelectorAll('.navlinks a'));
+    var secs=navlinks.map(function(a){return document.querySelector(a.getAttribute('href'));});
+    var spy=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){var id='#'+e.target.id;navlinks.forEach(function(a){a.classList.toggle('active',a.getAttribute('href')===id);});}});},{rootMargin:'-45% 0px -50% 0px'});
+    secs.forEach(function(s){if(s)spy.observe(s);});
+
+    /* MASTER scroll motion: skew velocity + parallax watermarks/orbs/grid + progress */
+    var skewEls=[].slice.call(document.querySelectorAll('.skew'));
+    var wms=[].slice.call(document.querySelectorAll('.wm'));
+    var orbs=[].slice.call(document.querySelectorAll('[data-orb]'));
+    var grid=document.getElementById('grid');var prog=document.querySelector('.progress');
+    var last=scrollY,skew=0;
+    if(!reduce){(function tick(){
+      var sy=scrollY,v=sy-last;last=sy;
+      var tgt=Math.max(-5,Math.min(5,v*0.32));skew+=(tgt-skew)*0.12;
+      var sval=Math.abs(skew)<0.02?0:skew;
+      for(var i=0;i<skewEls.length;i++)skewEls[i].style.transform='skewY('+sval+'deg)';
+      for(var w=0;w<wms.length;w++)wms[w].style.transform='translateY(-50%) translateX('+(-sy*parseFloat(wms[w].dataset.wm))+'px)';
+      for(var o=0;o<orbs.length;o++)orbs[o].style.marginTop=(sy*parseFloat(orbs[o].dataset.orb))+'px';
+      if(grid)grid.style.backgroundPosition='0 '+(sy*0.4)+'px';
+      var hmax=document.documentElement.scrollHeight-innerHeight;prog.style.width=(sy/hmax*100)+'%';
+      requestAnimationFrame(tick);})();
+    } else { addEventListener('scroll',function(){var hmax=document.documentElement.scrollHeight-innerHeight;prog.style.width=(scrollY/hmax*100)+'%';},{passive:true}); }
+  }catch(err){
+    /* anything broke? guarantee the page is fully visible */
+    document.body.classList.remove('js');
+    var all=document.querySelectorAll('.rv,.rv-l,.rv-r,.rv-s,.hreveal');
+    for(var z=0;z<all.length;z++){all[z].style.opacity='1';all[z].style.transform='none';}
+  }
+})();
+/* independent safety net: even if the block above never parsed/ran, reveal content */
+setTimeout(function(){try{
+  var n=document.querySelectorAll('.rv:not(.in),.rv-l:not(.in),.rv-r:not(.in),.rv-s:not(.in)');
+  if(document.body.classList.contains('js')&&n.length>20){
+    document.body.classList.remove('js');
+  }
+}catch(e){}},4500);
+</script>
+</body>
+</html>
